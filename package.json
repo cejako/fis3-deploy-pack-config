@@ -1,10 +1,16 @@
 {
   "name": "fis3-deploy-config-json",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "description": "fis3 生成 config json",
+  "homepage": "https://github.com/stephenLYao/fis3-deploy-config-json",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stephenLYao/fis3-deploy-config-json.git"
   },
   "keywords": [],
   "author": "stephenLiu",

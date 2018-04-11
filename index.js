@@ -12,6 +12,7 @@ var config = {};
 var entry = module.exports = function(options, modified, total, next) {
   var bid = options.bid,
   	  tmp = options.tmp;
+  config.version = new Date().getTime();
   modified.forEach(function(file) {
 	    if (file.isHtmlLike) {
 	        var pageName = file.subpath.match(/\/pages\/([^\/]+)\/index.html/)[1],
