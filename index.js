@@ -25,11 +25,11 @@ var entry = module.exports = function(opts, modified, total, next) {
 
     next();
 
+    fis.util.write(projectPath(opts.tmp, '/now_config.json'), JSON.stringify(config));
+
     // TODO 使用增量打包，放到next()之前
     // 生成zip文件应该在所有文件写入tmp文件夹之后
     pack(opts.type, projectPath(opts.tmp), projectPath(opts.to));
-
-   	fis.util.write(projectPath(opts.tmp, '/now_config.json'), JSON.stringify(config));
 };
 
 function projectPath() {
@@ -65,6 +65,7 @@ var packJSON = function(item) {
 	var file = item.file,
 		content = item.content,
 		subpath = item.subpath;
+    config.version = new Date().getTime();
 	if (file.isHtmlLike) {
         var pageName = file.subpath.match(/\/pages\/([^\/]+)\/index.html/)[1],
             badjsId = "",
