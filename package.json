@@ -1,5 +1,5 @@
 {
-  "name": "fis3-deploy-json",
+  "name": "fis3-deploy-config-json",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -7,6 +7,6 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
+  "author": "stephenLiu",
   "license": "ISC"
 }
