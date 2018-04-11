@@ -1,84 +1,146 @@
-"use strict";
+'use strict';
 
+var path = require('path'),
+    fs = require('fs'),
+    rimraf = require('rimraf'),
+    archiver = require('archiver'),
+    noop = new Function(); 
 var config = {};
-/**
- * deploy 插件接口
- * @param  {Object}   options  插件配置
- * @param  {Object}   modified 修改了的文件列表（对应watch功能）
- * @param  {Object}   total    所有文件列表
- * @param  {Function} next     调用下一个插件
- * @return {undefined}
- */
-var entry = module.exports = function(options, modified, total, next) {
-  var bid = options.bid,
-  	  tmp = options.tmp;
-  config.version = new Date().getTime();
-  modified.forEach(function(file) {
-	    if (file.isHtmlLike) {
-	        var pageName = file.subpath.match(/\/pages\/([^\/]+)\/index.html/)[1],
-	            content = file.getContent(),
-	            badjsId = "",
-	            AVReportBusiName = "",
-	            scripts = [];
-	        content.replace(/badjsId:\s*["|'](\S+)["|']/, function(text, id) {
-	            if (id) {
-	                badjsId = id;
-	            }
-	        });
-	        content.replace(/busi_name:\s*["|'](\S+)["|']/, function(text, name) {
-	            if (name) {
-	                AVReportBusiName = name;
-	            }
-	        });
-	        content.replace(/<script\s[^>]*\bsrc=(["'])([^>"']+)\1[^>]*>\s*<\/script>/g, function(text, a, url) {
-	            if (url) {
-	                if (url.indexOf('?_bid=') === -1) {
-	                    url = url + '?_bid=' + bid;
-	                }
-	                scripts.push(url);
-	            }
-	        });
-	        config[pageName] = Object.assign({}, config[pageName], {
-	                badjsId: badjsId,
-	                AVReportBusiName: AVReportBusiName,
-	                scripts: scripts
-	        });
-	    }
-	    if (file.isCssLike) {
-	        var pageName = file.subpath.match(/\/pages\/([^\/]+)\/(\w.+).css/)[1],
-	            styles = [],
-	            url = file.domain + file.getHashRelease() + '?_bid=' + bid;
-	        if (url) {
-	            styles.push(url);
-	        }
-	        config[pageName] = Object.assign({}, config[pageName], {
-	            styles: styles
-	        });    
-	    }
-	    if (file.isJsLike) {
-	        var match = file.subpath.match(/\/pages\/([^\/]+)\/(\w.+).js/),
-	            url;
-	        if (match) {
-	            var pageName = match[1];
-	            if (match[2] === 'init') {
-	                url = file.domain + file.getHashRelease() + '?_bid=' + bid;
-	                config[pageName].scripts && config[pageName].scripts.push(url);
-	            } else if (match[2] === 'preload') {
-	                url = file.domain + file.getHashRelease() + '?_bid=' + bid;
-	                config[pageName] = Object.assign({}, config[pageName], {
-	                    preprocess: [].concat(url)
-	                });
-	            }
-	        }                
-	    }
-	});
-	next();
-	fis.util.write(fis.project.getProjectPath(tmp + '/now_config.json'), JSON.stringify(config));
+var entry = module.exports = function(opts, modified, total, next) {
+    clean(opts);
+
+    total.filter(function(file) {
+        return (opts.packDomain && file.domain && file.pack !== false) 
+            || file.pack;
+    }).map(function(file) {
+        return {
+        	file: file,
+            subpath: opts.subpath(file),
+            content: opts.content(file)
+        };
+    }).forEach(function(item) {
+        fis.util.write(projectPath(opts.tmp, item.subpath), item.content);
+        packJSON(item);
+    });
+
+    next();
+
+    // TODO 使用增量打包，放到next()之前
+    // 生成zip文件应该在所有文件写入tmp文件夹之后
+    pack(opts.type, projectPath(opts.tmp), projectPath(opts.to));
+
+   	fis.util.write(projectPath(opts.tmp, '/now_config.json'), JSON.stringify(config));
 };
 
+function projectPath() {
+    return fis.project.getProjectPath(fis.util.apply(fis.util, arguments));
+}
+
+var clean = function(opts) {
+    rimraf.sync(projectPath(opts.tmp));
+    rimraf.sync(projectPath(opts.to));
+    clean = noop;
+};
+
+var pack = function(type, dir, output) {
+    var archive = archiver(type)
+        .bulk([{
+            expand: true,
+            cwd: dir,
+            src: ['**', '!' + output.replace(dir, '').replace(/^\//, '')]
+        }])
+        .on('error', function() {
+            fis.log.error('zip failed: ' + output);
+        });
+
+    fis.util.mkdir(path.dirname(output));
+    archive.pipe(fs.createWriteStream(output));
+    archive.finalize();
+
+    // TODO 增量打包时remove
+    pack = noop;
+};
+
+var packJSON = function(item) {
+	var file = item.file,
+		content = item.content,
+		subpath = item.subpath;
+	if (file.isHtmlLike) {
+        var pageName = file.subpath.match(/\/pages\/([^\/]+)\/index.html/)[1],
+            badjsId = "",
+            AVReportBusiName = "",
+            scripts = [];
+        content.replace(/badjsId:\s*["|'](\S+)["|']/, function(text, id) {
+            if (id) {
+                badjsId = id;
+            }
+        });
+        content.replace(/busi_name:\s*["|'](\S+)["|']/, function(text, name) {
+            if (name) {
+                AVReportBusiName = name;
+            }
+        });
+        content.replace(/<script\s[^>]*\bsrc=(["'])([^>"']+)\1[^>]*>\s*<\/script>/g, function(text, a, url) {
+            if (url) {
+                scripts.push(url);
+            }
+        });
+        config[pageName] = Object.assign({}, config[pageName], {
+                badjsId: badjsId,
+                AVReportBusiName: AVReportBusiName,
+                scripts: scripts
+        });
+    }
+    if (file.isCssLike) {
+        var pageName = file.subpath.match(/\/pages\/([^\/]+)\/(\w.+).css/)[1],
+            styles = [];
+            styles.push('/' + subpath);
+        config[pageName] = Object.assign({}, config[pageName], {
+            styles: styles
+        });    
+    }
+    if (file.isJsLike) {
+        var match = file.subpath.match(/\/pages\/([^\/]+)\/(\w.+).js/);
+        if (match) {
+            var pageName = match[1];
+            if (match[2] === 'init') {
+                config[pageName].scripts && config[pageName].scripts.push('/' + subpath);
+            } else if (match[2] === 'preload') {
+                config[pageName] = Object.assign({}, config[pageName], {
+                    preprocess: [].concat('/' + subpath)
+                });
+            }
+        }                
+    }
+};
 
 entry.options = {
     tmp: '../.pack-tmp', // 临时文件夹
 
-    bid: 152
+    type: 'zip', // 压缩类型, 传给archiver
+
+    to: '../pack/pack.zip', // 输出压缩包名
+
+    packDomain: true, // 是否打包所有包含domain属性的文件
+
+    // 文件在压缩包中的路径
+    subpath: function(file) {
+        return typeof file.pack === 'string' ? file.pack : fis.util(
+            (file.domain || '').replace(/^http:\/\//i, ''), 
+            file.getHashRelease()
+        );
+    },
+
+    // 文件内容
+    content: function(file) {
+        var inject = {
+            version: Date.now()
+        };
+        return !file. _likes || !file. _likes.isHtmlLike 
+            ? file.getContent()
+            : (file.getContent() || '').replace(
+                /(<script)/, 
+                '<script>var pack = ' + JSON.stringify(inject) + '</script>$1'
+            );
+    }
 };

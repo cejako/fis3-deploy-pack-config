@@ -1,18 +1,21 @@
 {
-  "name": "fis3-deploy-config-json",
+  "name": "fis3-deploy-pack-config",
   "version": "1.0.1",
-  "description": "",
+  "description": "fis3 生成 config json",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "description": "fis3 生成 config json",
-  "homepage": "https://github.com/stephenLYao/fis3-deploy-config-json",
+  "homepage": "https://github.com/stephenLYao/fis3-deploy-pack-config",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/stephenLYao/fis3-deploy-config-json.git"
+    "url": "git+https://github.com/stephenLYao/fis3-deploy-pack-config.git"
   },
   "keywords": [],
   "author": "stephenLiu",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "archiver": "^0.20.0",
+    "rimraf": "^2.4.4"
+  }
 }

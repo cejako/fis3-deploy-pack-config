@@ -1,1 +1,1 @@
-## fis3-deploy-config-json
+## fis3-deploy-pack-config
