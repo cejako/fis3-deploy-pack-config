@@ -71,12 +71,12 @@ var packJSON = function(item) {
             badjsId = "",
             AVReportBusiName = "",
             scripts = [];
-        content.replace(/badjsId:\s*["|'](\S+)["|']/, function(text, id) {
+        content.replace(/badjsId:\s*["']([^"']+)/, function(text, id) {
             if (id) {
                 badjsId = id;
             }
         });
-        content.replace(/busi_name:\s*["|'](\S+)["|']/, function(text, name) {
+        content.replace(/busi_name:\s*["']([^"']+)/, function(text, name) {
             if (name) {
                 AVReportBusiName = name;
             }
