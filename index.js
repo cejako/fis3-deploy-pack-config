@@ -52,7 +52,7 @@ var entry = module.exports = function(opts, modified, total, next) {
         };
     }).forEach(function(item) {
         fis.util.write(projectPath(opts.tmp, item.subpath), item.content);
-        packJSON(item);
+        packJSON(item, opts.bid);
     });
 
     next();
@@ -93,7 +93,7 @@ var pack = function(type, dir, output) {
     pack = noop;
 };
 
-var packJSON = function(item) {
+var packJSON = function(item, bid) {
 	var file = item.file,
 		content = item.content,
 		subpath = item.subpath;
@@ -115,6 +115,7 @@ var packJSON = function(item) {
         });
         content.replace(/<script\s[^>]*\bsrc=(["'])([^>"']+)\1[^>]*>\s*<\/script>/g, function(text, a, url) {
             if (url) {
+                url = url + '?_bid=' + bid;
                 scripts.push(url);
             }
         });
@@ -126,8 +127,10 @@ var packJSON = function(item) {
     }
     if (file.isCssLike) {
         var pageName = file.subpath.match(/\/pages\/([^\/]+)\/(\w.+).css/)[1],
-            styles = [];
-            styles.push('/' + subpath);
+            styles = [],
+            csspath;
+        csspath = '/' + subpath + '?_bid=' + bid;
+            styles.push(csspath);
         config[pageName] = Object.assign({}, config[pageName], {
             styles: styles
         });    
@@ -137,10 +140,12 @@ var packJSON = function(item) {
         if (match) {
             var pageName = match[1];
             if (match[2] === 'init') {
-                config[pageName].scripts && config[pageName].scripts.push('/' + subpath);
+                var initpath = '/' + subpath + '?_bid=' + bid;
+                config[pageName].scripts && config[pageName].scripts.push(initpath);
             } else if (match[2] === 'preload') {
+                var preloadpath = '/' + subpath + '?_bid=' + bid;
                 config[pageName] = Object.assign({}, config[pageName], {
-                    preprocess: [].concat('/' + subpath)
+                    preprocess: [].concat(preloadpath)
                 });
             }
         }                
@@ -175,5 +180,7 @@ entry.options = {
                 /(<script)/, 
                 '<script>var pack = ' + JSON.stringify(inject) + '</script>$1'
             );
-    }
+    },
+
+    bid: 215 // bid
 };
