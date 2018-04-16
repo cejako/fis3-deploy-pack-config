@@ -115,7 +115,9 @@ var packJSON = function(item, bid) {
         });
         content.replace(/<script\s[^>]*\bsrc=(["'])([^>"']+)\1[^>]*>\s*<\/script>/g, function(text, a, url) {
             if (url) {
-                url = url + '?_bid=' + bid;
+                if (url.indexOf('?_bid=') === -1) {
+                    url = url + '?_bid=' + bid;
+                }               
                 scripts.push(url);
             }
         });
@@ -128,9 +130,11 @@ var packJSON = function(item, bid) {
     if (file.isCssLike) {
         var pageName = file.subpath.match(/\/pages\/([^\/]+)\/(\w.+).css/)[1],
             styles = [],
-            csspath;
-        csspath = '/' + subpath + '?_bid=' + bid;
-            styles.push(csspath);
+            csspath = '/' + subpath;
+        if (subpath.indexOf('?_bid=') === -1) {
+            csspath = csspath + '?_bid=' + bid;
+        }
+        styles.push(csspath);
         config[pageName] = Object.assign({}, config[pageName], {
             styles: styles
         });    
@@ -140,10 +144,16 @@ var packJSON = function(item, bid) {
         if (match) {
             var pageName = match[1];
             if (match[2] === 'init') {
-                var initpath = '/' + subpath + '?_bid=' + bid;
+                var initpath = '/' + subpath;
+                if (subpath.indexOf('?_bid=') === -1) {
+                    initpath = initpath + '?_bid=' + bid;
+                }
                 config[pageName].scripts && config[pageName].scripts.push(initpath);
             } else if (match[2] === 'preload') {
-                var preloadpath = '/' + subpath + '?_bid=' + bid;
+                var preloadpath = '/' + subpath;
+                if (subpath.indexOf('?_bid=') === -1) {
+                    preloadpath = preloadpath + '?_bid=' + bid;
+                }
                 config[pageName] = Object.assign({}, config[pageName], {
                     preprocess: [].concat(preloadpath)
                 });
